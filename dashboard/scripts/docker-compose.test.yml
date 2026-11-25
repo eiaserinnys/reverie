@@ -1,0 +1,33 @@
+# Docker Compose for E2E Test Environment
+# Completely isolated from production (port 8010, DB reverie)
+#
+# Test Environment:
+# - PostgreSQL: localhost:5434 / reverie_test
+# - Backend: localhost:8011
+
+services:
+  postgres-test:
+    image: pgvector/pgvector:pg16
+    container_name: reverie-test-postgres
+    environment:
+      POSTGRES_USER: reverie_test
+      POSTGRES_PASSWORD: reverie_test
+      POSTGRES_DB: reverie_test
+    ports:
+      - "5434:5432"  # Map to 5434 to avoid conflict with production (5432) and other local test databases (5433)
+    networks:
+      - reverie-test-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U reverie_test -d reverie_test"]
+      interval: 2s
+      timeout: 5s
+      retries: 10
+    # Use anonymous volume - deleted when container is removed
+    volumes:
+      - type: tmpfs
+        target: /var/lib/postgresql/data
+
+networks:
+  reverie-test-network:
+    driver: bridge
+    name: reverie-test-network

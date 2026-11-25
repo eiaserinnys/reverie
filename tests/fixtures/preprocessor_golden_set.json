@@ -1,0 +1,141 @@
+{
+  "metadata": {
+    "version": "1.0",
+    "description": "Golden test set for session preprocessor quality evaluation",
+    "created": "2026-02-06",
+    "categories": {
+      "drop_greeting": "인사/잡담 - 드롭 대상",
+      "drop_reference": "URL/ID만 있는 턴 - 드롭 대상",
+      "drop_simple_tool": "의미 없는 단순 툴 호출 - 드롭 대상",
+      "drop_generic": "LLM이 이미 아는 자명한 개념 - 드롭 대상",
+      "keep_architecture": "아키텍처 결정/설계 의도 - 보존 대상",
+      "keep_error_fix": "실수 발견+수정 - 보존 대상",
+      "keep_implementation": "기능 구현 내역 - 보존 대상",
+      "keep_debugging": "디버깅 과정과 해결책 - 보존 대상",
+      "edge_tool_with_insight": "툴 호출이지만 의미 있는 결과 포함 - 경계 케이스",
+      "edge_context_dependent": "에이전트/그림자 맥락 의존 - 경계 케이스"
+    }
+  },
+  "test_cases": [
+    {
+      "id": "drop_001",
+      "category": "drop_greeting",
+      "input_text": "User: 안녕!\nAssistant: 안녕하세요! 무엇을 도와드릴까요?",
+      "expected_action": "drop",
+      "expected_keywords": [],
+      "description": "단순 인사 - 지식 그래프에 가치 없음"
+    },
+    {
+      "id": "drop_002",
+      "category": "drop_greeting",
+      "input_text": "User: 고마워!\nAssistant: 천만에요. 다른 질문 있으시면 말씀해주세요.",
+      "expected_action": "drop",
+      "expected_keywords": [],
+      "description": "감사 인사 - 지식 그래프에 가치 없음"
+    },
+    {
+      "id": "drop_003",
+      "category": "drop_reference",
+      "input_text": "User: 이 카드 확인해봐 https://trello.com/c/AbCd1234\nAssistant: 카드를 확인하겠습니다.\nTool: mcp__trello__get_card(cardId='000000000000000000000001')\nResult: {카드 상세 내용...}",
+      "expected_action": "drop",
+      "expected_keywords": [],
+      "description": "URL과 ID만 있는 단순 조회 - 참조 데이터만 있음"
+    },
+    {
+      "id": "drop_004",
+      "category": "drop_simple_tool",
+      "input_text": "User: git status 확인해봐\nAssistant: 확인합니다.\nTool: Bash(command='git status')\nResult: On branch main\\nnothing to commit, working tree clean",
+      "expected_action": "drop",
+      "expected_keywords": [],
+      "description": "단순 git status - 의미 있는 결과 없음"
+    },
+    {
+      "id": "drop_005",
+      "category": "drop_simple_tool",
+      "input_text": "User: npm install 해줘\nAssistant: 설치합니다.\nTool: Bash(command='npm install')\nResult: added 150 packages in 5s",
+      "expected_action": "drop",
+      "expected_keywords": [],
+      "description": "단순 패키지 설치 - 로그만 있음"
+    },
+    {
+      "id": "drop_006",
+      "category": "drop_generic",
+      "input_text": "User: HTTP 메서드 종류 알려줘\nAssistant: HTTP 메서드는 다음과 같습니다:\n- GET: 리소스 조회\n- POST: 리소스 생성\n- PUT: 리소스 전체 수정\n- PATCH: 리소스 부분 수정\n- DELETE: 리소스 삭제",
+      "expected_action": "drop",
+      "expected_keywords": [],
+      "description": "자명한 개념 설명 - LLM이 이미 알고 있는 내용"
+    },
+    {
+      "id": "keep_001",
+      "category": "keep_architecture",
+      "input_text": "User: 왜 PostgreSQL을 선택했어?\nAssistant: SQLite 대신 PostgreSQL을 선택한 이유입니다:\n1. 동시 접근 안정성 - 인덱싱과 검색이 동시에 발생하므로\n2. pgvector 확장으로 임베딩 KNN 검색을 DB 레벨에서 처리\n3. 노트앱와 백업/복구 통합 관리 가능",
+      "expected_action": "keep",
+      "expected_keywords": ["PostgreSQL", "SQLite", "pgvector", "동시 접근"],
+      "description": "DB 선택 이유 - 아키텍처 결정과 근거"
+    },
+    {
+      "id": "keep_002",
+      "category": "keep_architecture",
+      "input_text": "User: 전처리를 turn_chunker에 넣을지, pipeline에 넣을지 고민돼\nAssistant: pipeline.py에서 처리하는 게 나을 것 같습니다:\n1. turn_chunker가 순수하게 청킹만 담당 (단일 책임)\n2. 전처리 on/off 토글이 파이프라인 레벨에서 제어 가능\n3. 전처리 통계도 파이프라인에서 쉽게 집계 가능",
+      "expected_action": "keep",
+      "expected_keywords": ["pipeline", "turn_chunker", "단일 책임", "통계"],
+      "description": "코드 구조 설계 결정 - 책임 분리와 설계 근거"
+    },
+    {
+      "id": "keep_003",
+      "category": "keep_error_fix",
+      "input_text": "User: 테스트가 실패하네\nAssistant: 확인해보니 import path가 잘못되어 있었습니다. 'from foo.bar' 대신 'from src.foo.bar'로 수정했습니다.\nTool: Edit(file='test_example.py', old='from foo.bar', new='from src.foo.bar')\nResult: File updated",
+      "expected_action": "keep",
+      "expected_keywords": ["import path", "수정"],
+      "description": "import 경로 오류 발견 및 수정"
+    },
+    {
+      "id": "keep_004",
+      "category": "keep_error_fix",
+      "input_text": "User: 왜 connection pool이 고갈됐지?\nAssistant: 분석해보니 with 블록 밖에서 커서를 사용하고 있어서 커넥션이 반환되지 않았습니다. contextmanager 범위 안에서만 사용하도록 수정했습니다.",
+      "expected_action": "keep",
+      "expected_keywords": ["connection pool", "커서", "contextmanager"],
+      "description": "커넥션 풀 고갈 원인 분석 및 해결"
+    },
+    {
+      "id": "keep_005",
+      "category": "keep_implementation",
+      "input_text": "User: PreprocessorClient를 OpenIEClient 패턴으로 만들어줘\nAssistant: 구현했습니다. 주요 특징:\n- __init__: 소넷급 모델 기본, ApiCache 연동\n- preprocess_turn(): 텍스트를 받아 keep/drop 결정\n- 캐시 namespace는 'preprocess'로 분리\n- rate limit 재시도 로직 포함",
+      "expected_action": "keep",
+      "expected_keywords": ["PreprocessorClient", "ApiCache", "preprocess_turn"],
+      "description": "전처리 클라이언트 구현 내역"
+    },
+    {
+      "id": "keep_006",
+      "category": "keep_debugging",
+      "input_text": "User: regex가 왜 매칭 안 되지?\nAssistant: 디버깅해보니 JSON 안에 중괄호가 있으면 [^{}]* 패턴이 실패합니다. 예를 들어 refined_text에 'config = {}' 같은 내용이 있으면 매칭이 안 됩니다. 더 로버스트한 파싱 로직이 필요합니다.",
+      "expected_action": "keep",
+      "expected_keywords": ["regex", "중괄호", "매칭"],
+      "description": "정규식 매칭 실패 원인 분석"
+    },
+    {
+      "id": "edge_001",
+      "category": "edge_tool_with_insight",
+      "input_text": "User: 테스트 실행해봐\nAssistant: 테스트를 실행합니다.\nTool: Bash(command='pytest tests/ -q')\nResult: 15 passed in 3.21s\nAssistant: 모든 테스트가 통과했습니다. 특히 새로 추가한 test_preprocessor_drop_greeting이 잘 동작합니다.",
+      "expected_action": "keep",
+      "expected_keywords": ["테스트", "통과", "test_preprocessor"],
+      "description": "테스트 실행이지만 구체적인 테스트 이름과 결과 언급"
+    },
+    {
+      "id": "edge_002",
+      "category": "edge_context_dependent",
+      "input_text": "User: 서비스 A의 develop 브랜치 배포 방식 설명해줘\nAssistant: 서비스 A는 develop 브랜치에 푸시하면 CI가 자동 배포합니다. 반면 서비스 B는 release 브랜치를 사용합니다. 둘의 서비스 포트도 다릅니다: 서비스 A 9000, 서비스 B 9001.",
+      "expected_action": "keep",
+      "expected_keywords": ["서비스 A", "develop", "CI", "서비스 B", "release"],
+      "description": "서비스별 브랜치 전략 설명 - 프로젝트 고유 맥락"
+    },
+    {
+      "id": "edge_003",
+      "category": "edge_context_dependent",
+      "input_text": "User: 노트앱에 포스팅하는 방법 알려줘\nAssistant: 노트앱 MCP 툴을 사용합니다. mcp__noteapp__create_page로 페이지를 만들고, mcp__noteapp__create_block으로 블록을 추가합니다. Portable Text 형식을 사용해야 합니다.",
+      "expected_action": "keep",
+      "expected_keywords": ["노트앱", "MCP", "Portable Text"],
+      "description": "노트앱 사용법 - 에이전트 에코시스템 고유 지식"
+    }
+  ]
+}

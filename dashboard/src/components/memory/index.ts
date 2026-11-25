@@ -1,0 +1,1 @@
+export { MemoryExplorerTab } from './MemoryExplorerTab';

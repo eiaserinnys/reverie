@@ -1,0 +1,249 @@
+# NER System Prompt
+
+Your task is to extract named entities from text for knowledge graph indexing.
+
+Extract entities that would help recall this content later:
+- Named concepts, topics, or subjects being discussed
+- Proper nouns: people, places, organizations, products, services
+- Technical terms: tools, technologies, frameworks, protocols
+- Domain-specific vocabulary: specialized terms in any field
+- Context-relevant common nouns: nouns that carry meaning in context (장면, 의미, 방법, 기능, 파일, 설정, 작업, 동작, 원인, 코드, 로직)
+- Key event verbs: verbs that represent the core action/event of a sentence
+  - In news headlines: extract the main action (headline, advance, discontinue, 급등, 탈환, 압승, 맹비난)
+  - In academic/technical text: extract significant actions (unveils, hints, demonstrates)
+  - In technical/work context: extract task operations (확인, 사용, 설정, 진단, 연동, 구현, 배포)
+  - Do NOT extract: everyday conversation verbs (하다, 가다, 있다), cooking verbs (끓이다, 넣다, 썰다)
+- Unique identifiers: database names, config keys, variable names, filenames that carry domain meaning
+
+IMPORTANT - Compound concept decomposition:
+For multi-word concepts, you MUST extract:
+1. The full compound phrase (listed first)
+2. Each meaningful component word separately (2+ characters)
+3. Intermediate combinations if they are established terms or collocations
+
+Established collocations (DO extract as intermediate):
+- Technical compounds: "세션 종료", "Redis 캐시", "연결 풀링", "구독 취소", "API 호출", "webhook 호출", "브랜치 병합"
+- Domain terms: "database connection pool", "API gateway", "prompt caching", "error handling"
+- Service names: "유튜브 프리미엄", "Super Bowl halftime show"
+
+Mechanical adjacencies (do NOT extract as intermediate):
+- [noun] + [generic happening]: "코드 읽기", "파일 저장", "에러 발생 시점"
+- Ad-hoc descriptions: "file reading speed", "token counting logic"
+
+The test: "Would someone search for this exact multi-word phrase as a concept name?" If yes, extract it.
+
+Do NOT extract:
+- Agent tool invocation names: tool names from [tool_use] blocks (Grep, Bash, Read, Write, ListFiles, Search). DO extract real CLI tools (psql, pm2, docker, git)
+- Reference data: UUIDs, hex IDs, git hashes, timestamps
+- Standalone numeric values: counts (47개), durations (3시간), percentages (4%) — UNLESS the number is part of the official name (2나노, Phase 5.6, 5300선, February 8, 2026)
+- Generic roles: user, assistant, system, author, reader
+- XML/HTML tags
+- Common words without specific meaning: the, a, is, are, do, make, 이, 그, 저, 것
+- Single characters or tokens under 2 characters
+- Full file paths (extract filename only)
+- Pronouns: it, this, that, they, 이거, 그거
+- Dialogue flow utterances: acknowledgements, continue prompts, meta phrases for conversation control
+
+
+# Few-Shot Examples
+
+## Example 1: Software development session - API debugging
+
+Input:
+```
+[user] payment_gateway 모듈에서 Stripe API 연동 코드를 점검해줘. 특히 webhook 이벤트 핸들링하는 부분이 궁금해.
+
+[assistant] payment_gateway 모듈의 Stripe API 연동을 확인해보겠습니다. webhook 이벤트 처리 로직을 중점적으로 살펴볼게요.
+
+[tool_use] Grep: pattern="stripe" path="/home/dev/services/payment"
+[tool_result] Found 23 matches in 6 files
+
+[assistant] stripe_handler.py에서 결제 성공, 실패, 환불 이벤트를 처리하는 로직을 찾았습니다. idempotency key를 활용해서 중복 처리를 방지하고 있네요.
+```
+
+Output:
+{"named_entities": ["payment_gateway", "모듈", "Stripe", "Stripe API", "API", "연동", "코드", "점검", "webhook", "webhook 이벤트", "이벤트", "핸들링", "확인", "처리", "로직", "stripe_handler.py", "결제", "성공", "실패", "환불", "idempotency key", "중복", "방지"]}
+
+
+## Example 2: Machine Learning Concepts - Neural Networks
+
+Input:
+```
+Convolutional Neural Networks have revolutionized computer vision by learning hierarchical feature representations directly from raw pixel data. The architecture typically consists of alternating convolutional and pooling layers, followed by fully connected layers for classification. Batch normalization helps stabilize training by normalizing layer inputs, while dropout prevents overfitting by randomly deactivating neurons during training. Modern architectures like ResNet introduced skip connections to enable training of very deep networks, addressing the vanishing gradient problem that plagued earlier designs.
+```
+
+Output:
+{"named_entities": ["Convolutional Neural Networks", "Neural Networks", "computer vision", "vision", "learning", "hierarchical feature", "feature representations", "raw pixel data", "pixel", "architecture", "convolutional layers", "pooling layers", "layers", "fully connected layers", "classification", "Batch normalization", "normalization", "training", "dropout", "overfitting", "neurons", "ResNet", "skip connections", "deep networks", "vanishing gradient", "gradient"]}
+
+
+## Example 3: Cloud Infrastructure - Kubernetes Deployment
+
+Input:
+```
+Kubernetes orchestrates containerized applications across clusters of machines, providing automated deployment, scaling, and management. Each pod contains one or more containers sharing network and storage resources. Services abstract pod networking, enabling load balancing and service discovery. ConfigMaps and Secrets manage application configuration, while Persistent Volumes provide durable storage. The control plane components including etcd, API server, scheduler, and controller manager coordinate cluster operations.
+```
+
+Output:
+{"named_entities": ["Kubernetes", "containerized applications", "applications", "clusters", "automated deployment", "deployment", "scaling", "management", "pod", "containers", "network", "storage", "Services", "networking", "load balancing", "service discovery", "ConfigMaps", "Secrets", "configuration", "Persistent Volumes", "Volumes", "control plane", "etcd", "API server", "scheduler", "controller manager", "cluster"]}
+
+
+## Example 4: Korean Tech Article - AI Startup Ecosystem
+
+Input:
+```
+국내 인공지능 스타트업 생태계가 빠르게 성장하고 있다. 특히 자연어처리 분야에서 네이버의 하이퍼클로바X와 카카오브레인의 KoGPT가 주목받고 있다. 벤처캐피탈의 투자가 활발해지면서 시드 라운드부터 시리즈 B까지 다양한 단계의 펀딩이 이루어지고 있다. 정부도 AI 반도체와 클라우드 인프라 구축에 적극 지원하며 기술 주권 확보에 나섰다. 미국 실리콘밸리의 OpenAI와 Anthropic에 대응하는 국산 대규모 언어모델 개발이 가속화되고 있다.
+```
+
+Output:
+{"named_entities": ["인공지능", "스타트업", "스타트업 생태계", "생태계", "성장", "자연어처리", "네이버", "하이퍼클로바X", "카카오브레인", "KoGPT", "벤처캐피탈", "투자", "시드 라운드", "시리즈 B", "펀딩", "AI 반도체", "AI", "반도체", "클라우드", "클라우드 인프라", "인프라", "기술 주권", "실리콘밸리", "OpenAI", "Anthropic", "대규모 언어모델", "언어모델", "개발"]}
+
+
+## Example 5: Korean Development Chat - Cache Optimization
+
+Input:
+```
+[user] API 서버의 응답 속도가 너무 느려. Memcached 도입을 검토 중인데 Redis랑 어떤 차이가 있어?
+
+[assistant] 두 캐시 시스템은 용도가 다릅니다. Memcached는 단순 키-값 저장에 최적화되어 있고, Redis는 다양한 데이터 구조를 지원합니다. 현재 트래픽 패턴과 데이터 특성을 보면 Redis Cluster가 더 적합해 보입니다.
+
+[user] 그럼 Redis Sentinel로 고가용성 구성은 어떻게 해?
+
+[assistant] Sentinel은 마스터-슬레이브 구조에서 자동 장애 복구를 제공합니다. 최소 3개의 Sentinel 인스턴스를 권장하며, quorum 설정으로 failover 조건을 정할 수 있습니다.
+```
+
+Output:
+{"named_entities": ["API 서버", "API", "서버", "응답 속도", "Memcached", "도입", "검토", "Redis", "캐시", "캐시 시스템", "시스템", "키-값", "저장", "데이터 구조", "트래픽", "트래픽 패턴", "Redis Cluster", "Cluster", "Redis Sentinel", "Sentinel", "고가용성", "구성", "마스터-슬레이브", "장애 복구", "인스턴스", "quorum", "failover"]}
+
+
+## Example 6: Gaming Review - Strategy Game
+
+Input:
+```
+문명 7이 드디어 발표됐네요. 이번 시리즈에서는 시대별로 문명을 바꿀 수 있다는 게 가장 큰 변화인 것 같아요. 고대 시대에 이집트로 시작해서 중세에 몽골 제국으로 전환하는 플레이가 가능하다니 신선하네요. 외교 시스템도 개편되어서 동맹과 적대 관계가 더 역동적으로 변한다고 합니다. 스팀에서 사전 구매하면 DLC 시즌 패스가 포함된다는데, 출시일이 내년 2월이라 아직 멀었어요.
+```
+
+Output:
+{"named_entities": ["문명 7", "발표", "시리즈", "시대", "문명", "고대 시대", "이집트", "중세", "몽골 제국", "전환", "플레이", "외교 시스템", "외교", "시스템", "개편", "동맹", "적대 관계", "스팀", "사전 구매", "DLC", "시즌 패스", "출시일"]}
+
+
+## Example 7: Academic Research - Quantum Computing
+
+Input:
+```
+Quantum supremacy was demonstrated when Google's Sycamore processor solved a sampling problem in 200 seconds that would take classical supercomputers approximately 10,000 years. The 53-qubit processor utilized superconducting transmon qubits maintained at temperatures near absolute zero. Error correction remains a significant challenge, as quantum decoherence causes information loss. IBM's roadmap targets 100,000 qubits by 2033, while startups like IonQ pursue trapped ion approaches. Quantum algorithms such as Shor's factoring and Grover's search promise exponential speedups for specific computational problems.
+```
+
+Output:
+{"named_entities": ["Quantum supremacy", "supremacy", "demonstrated", "Google", "Sycamore", "Sycamore processor", "processor", "sampling problem", "classical supercomputers", "supercomputers", "qubit", "superconducting", "transmon qubits", "absolute zero", "Error correction", "quantum decoherence", "decoherence", "information loss", "IBM", "roadmap", "qubits", "IonQ", "trapped ion", "Quantum algorithms", "algorithms", "Shor's factoring", "Grover's search", "exponential speedups", "computational"]}
+
+
+## Example 8: Fitness Blog - Home Workout
+
+Input:
+```
+홈트레이닝으로 상체 근력을 키우는 루틴을 공유합니다. 푸쉬업 변형 동작으로 시작해서 덤벨 로우, 숄더 프레스 순서로 진행하세요. 초보자는 무릎 푸쉬업부터 시작하고, 점진적 과부하 원칙을 적용해 매주 반복 횟수를 늘려가세요. 운동 전 동적 스트레칭으로 어깨와 손목 관절을 풀어주고, 운동 후에는 정적 스트레칭으로 근육 회복을 돕습니다. 단백질 섭취는 체중 kg당 1.6g을 목표로 하고, 충분한 수면이 근성장에 필수입니다.
+```
+
+Output:
+{"named_entities": ["홈트레이닝", "상체", "근력", "루틴", "공유", "푸쉬업", "푸쉬업 변형", "덤벨 로우", "덤벨", "로우", "숄더 프레스", "숄더", "프레스", "초보자", "무릎 푸쉬업", "점진적 과부하", "과부하", "반복", "동적 스트레칭", "스트레칭", "어깨", "손목", "관절", "정적 스트레칭", "근육 회복", "근육", "회복", "단백질", "섭취", "체중", "수면", "근성장"]}
+
+
+## Example 9: Cooking Tutorial - Pasta Making (ingredients focus)
+
+Input:
+```
+Fresh pasta requires just three ingredients: tipo 00 flour, eggs, and a pinch of salt. The ratio is approximately 100 grams of flour per egg. Knead the dough until smooth and elastic, then rest it for at least 30 minutes wrapped in plastic. Rolling by hand demands patience, but a pasta machine makes it much easier. For fettuccine, roll to setting 5 and cut into strips. Cooking time for fresh pasta is much shorter than dried - usually just 2-3 minutes in salted boiling water. Finish in the pan with your sauce, adding pasta water to emulsify.
+```
+
+Output:
+{"named_entities": ["Fresh pasta", "pasta", "tipo 00 flour", "flour", "eggs", "salt", "ratio", "dough", "pasta machine", "machine", "fettuccine", "strips", "dried", "boiling water", "pan", "sauce", "pasta water", "emulsify"]}
+
+
+## Example 10: Project Management - Agile Workflow
+
+Input:
+```
+[user] 우리 팀 스프린트 회고에서 나온 액션 아이템들을 정리해줘. 특히 CI/CD 파이프라인 개선 건이 급해.
+
+[assistant] 스프린트 회고 결과를 정리하겠습니다. CI/CD 관련해서는 Jenkins에서 GitHub Actions로 마이그레이션하는 게 주요 안건이었죠. 빌드 시간 단축과 병렬 테스트 실행이 핵심 목표입니다.
+
+[user] 그리고 코드 리뷰 프로세스도 개선하기로 했는데, PR 템플릿 만들어줄 수 있어?
+
+[assistant] 네, PR 템플릿에 변경사항 요약, 테스트 방법, 스크린샷 섹션을 포함시키면 리뷰어가 맥락을 파악하기 쉬워집니다. CODEOWNERS 파일도 같이 설정하면 자동으로 리뷰어가 할당됩니다.
+```
+
+Output:
+{"named_entities": ["스프린트", "스프린트 회고", "회고", "액션 아이템", "정리", "CI/CD", "CI/CD 파이프라인", "파이프라인", "개선", "Jenkins", "GitHub Actions", "GitHub", "Actions", "마이그레이션", "빌드", "빌드 시간", "단축", "병렬 테스트", "테스트", "코드 리뷰", "리뷰", "프로세스", "PR", "PR 템플릿", "템플릿", "변경사항", "스크린샷", "리뷰어", "CODEOWNERS"]}
+
+
+## Example 11: Travel Planning - Europe Itinerary
+
+Input:
+```
+I'm planning a two-week backpacking trip through Central Europe. Starting in Prague, I'll take the train to Vienna for three days to explore the Habsburg palaces and coffee house culture. From there, a quick flight to Budapest where I've booked a hostel near the ruin bars. The thermal baths at Széchenyi are a must-visit. My budget is around 50 euros per day including accommodation and food. I'm considering getting the Eurail pass but not sure if it's worth it for just these three cities. Any recommendations for authentic local restaurants?
+```
+
+Output:
+{"named_entities": ["backpacking", "trip", "Central Europe", "Europe", "Prague", "train", "Vienna", "Habsburg palaces", "Habsburg", "palaces", "coffee house", "flight", "Budapest", "hostel", "ruin bars", "thermal baths", "Széchenyi", "budget", "accommodation", "food", "Eurail pass", "Eurail", "cities", "restaurants"]}
+
+
+## Example 12: Electronics DIY - Arduino Project
+
+Input:
+```
+아두이노 우노로 스마트 화분 자동 급수 시스템을 만들고 있어요. 토양 습도 센서로 수분량을 측정하고, 일정 수치 이하로 내려가면 릴레이 모듈을 통해 워터 펌프를 작동시키는 구조입니다. I2C 통신으로 OLED 디스플레이에 현재 상태를 표시하고, ESP8266 와이파이 모듈을 추가해서 블링크 앱으로 원격 모니터링도 가능하게 했습니다. 전원은 12V 어댑터를 사용하고, 아두이노는 별도로 5V 레귤레이터를 통해 공급받습니다.
+```
+
+Output:
+{"named_entities": ["아두이노", "아두이노 우노", "우노", "스마트 화분", "화분", "자동 급수", "급수", "시스템", "토양 습도 센서", "토양", "습도 센서", "수분량", "측정", "릴레이 모듈", "릴레이", "모듈", "워터 펌프", "펌프", "작동", "I2C", "I2C 통신", "OLED", "OLED 디스플레이", "디스플레이", "ESP8266", "와이파이", "블링크", "블링크 앱", "원격 모니터링", "모니터링", "어댑터", "레귤레이터"]}
+
+
+## Example 13: News Headline - Sports Event
+
+Input:
+```
+Manchester United secure dramatic victory over Liverpool in Premier League clash, with Bruno Fernandes scoring the winning goal in stoppage time. The 2-1 triumph marks their third consecutive win at Old Trafford this season.
+```
+
+Output:
+{"named_entities": ["Manchester United", "victory", "Liverpool", "Premier League", "Premier League clash", "clash", "Bruno Fernandes", "scoring", "winning goal", "goal", "stoppage time", "triumph", "win", "Old Trafford", "season"]}
+
+
+## Example 14: News Headline - Business/Tech
+
+Input:
+```
+엔비디아 주가 15% 급등, 사상 최고치 경신 AI 반도체 수요 폭증에 시가총액 3조 달러 돌파
+```
+
+Output:
+{"named_entities": ["엔비디아", "주가", "급등", "사상 최고치", "최고치", "경신", "AI 반도체", "AI", "반도체", "수요", "폭증", "시가총액", "3조 달러", "돌파"]}
+
+
+## Example 15: Edge Case - Empty extraction
+
+Input:
+```
+ㅇㅇ 알겠어
+```
+
+Output:
+{"named_entities": []}
+
+Input:
+```
+[user] 계속해
+[assistant] 네, 진행하겠습니다.
+```
+
+Output:
+{"named_entities": []}
+
+
+# User Template
+
+Extract named entities from the following text:
+
+```
+{passage}
+```

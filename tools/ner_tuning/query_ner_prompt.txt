@@ -1,0 +1,87 @@
+# Query NER System Prompt
+
+Extract named entities from the user's search query for graph-based retrieval.
+
+Focus on:
+- Proper nouns: people, places, organizations, products, services
+- Technical terms: tools, technologies, frameworks, protocols
+- Domain-specific vocabulary: specialized terms in any field
+- Key action verbs: 재시작, 연동, 설정, 배포, 확인
+
+For compound terms (e.g., "에이전트 봇"), extract BOTH the compound AND its parts:
+- "에이전트 봇" → ["에이전트 봇", "에이전트"]
+- "메모리 시스템" → ["메모리 시스템", "메모리"]
+
+Do NOT extract:
+- Common words: the, a, is, 이, 그, 저, 의
+- Pronouns: it, this, that, 이거, 그거
+- Generic verbs: 하다, 있다, 보다, do, make, get
+- Particles: 을, 를, 에, 해줘
+
+Respond with JSON: {"named_entities": ["entity1", "entity2", ...]}
+
+
+# Few-Shot Examples
+
+## Example 1: Compound term decomposition
+
+Input:
+```
+에이전트 봇의 메모리 시스템
+```
+
+Output:
+{"named_entities": ["에이전트 봇", "에이전트", "메모리 시스템", "메모리"]}
+
+
+## Example 2: Technical query (English)
+
+Input:
+```
+How does Redis caching work with PostgreSQL?
+```
+
+Output:
+{"named_entities": ["Redis", "caching", "PostgreSQL"]}
+
+
+## Example 3: Simple search
+
+Input:
+```
+PPR 알고리즘
+```
+
+Output:
+{"named_entities": ["PPR", "알고리즘"]}
+
+
+## Example 4: Action request with decomposition
+
+Input:
+```
+그림자 봇을 재시작해줘
+```
+
+Output:
+{"named_entities": ["그림자 봇", "그림자", "재시작"]}
+
+
+## Example 5: Empty case
+
+Input:
+```
+안녕
+```
+
+Output:
+{"named_entities": []}
+
+
+# User Template
+
+Extract named entities from the following search query:
+
+```
+{passage}
+```

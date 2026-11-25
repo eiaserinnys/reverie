@@ -1,0 +1,79 @@
+{
+  "testcases": [
+    {
+      "query": "에이전트",
+      "expected_entities": ["에이전트"],
+      "description": "Single entity - Korean proper noun"
+    },
+    {
+      "query": "에이전트 봇의 메모리 시스템",
+      "expected_entities": ["에이전트 봇", "에이전트", "메모리 시스템", "메모리"],
+      "description": "Compound Korean query"
+    },
+    {
+      "query": "PPR 알고리즘",
+      "expected_entities": ["PPR", "알고리즘"],
+      "description": "Technical term - mixed"
+    },
+    {
+      "query": "Redis 캐시 설정",
+      "expected_entities": ["Redis", "캐시", "설정"],
+      "description": "Technical config query"
+    },
+    {
+      "query": "PostgreSQL 연동",
+      "expected_entities": ["PostgreSQL", "연동"],
+      "description": "Database integration"
+    },
+    {
+      "query": "mcp sse",
+      "expected_entities": ["mcp", "sse"],
+      "description": "Protocol acronyms"
+    },
+    {
+      "query": "GitHub Actions 배포",
+      "expected_entities": ["GitHub Actions", "GitHub", "Actions", "배포"],
+      "description": "CI/CD query"
+    },
+    {
+      "query": "그림자 봇을 재시작해줘",
+      "expected_entities": ["그림자 봇", "그림자", "재시작"],
+      "description": "Action request"
+    },
+    {
+      "query": "안녕",
+      "expected_entities": [],
+      "description": "Greeting - should be empty"
+    },
+    {
+      "query": "ㅇㅇ",
+      "expected_entities": [],
+      "description": "Acknowledgement - should be empty"
+    },
+    {
+      "query": "lazy bipartite ppr implementation",
+      "expected_entities": ["lazy bipartite ppr", "bipartite", "ppr", "implementation"],
+      "description": "English technical query"
+    },
+    {
+      "query": "OpenAI API rate limit",
+      "expected_entities": ["OpenAI", "API", "rate limit"],
+      "description": "API error query"
+    },
+    {
+      "query": "세션 로그 인덱싱",
+      "expected_entities": ["세션", "로그", "인덱싱"],
+      "description": "Indexing query"
+    },
+    {
+      "query": "reverie 대시보드",
+      "expected_entities": ["reverie", "대시보드"],
+      "description": "Project component query"
+    },
+    {
+      "query": "passage adjacency window",
+      "expected_entities": ["passage", "adjacency", "window"],
+      "description": "Config parameter query"
+    }
+  ]
+}
